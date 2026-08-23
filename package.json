@@ -1,0 +1,1 @@
+{"name":"dreamy-eyes-cms","private":true,"type":"module","scripts":{"dev":"node --env-file=.env server.mjs","start":"node --env-file=.env server.mjs"},"engines":{"node":">=20"}}

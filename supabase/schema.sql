@@ -1,0 +1,15 @@
+create extension if not exists pgcrypto;
+create table profiles (id uuid primary key references auth.users(id) on delete cascade, is_admin boolean not null default false, created_at timestamptz not null default now());
+create function public.handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$ begin insert into public.profiles(id) values(new.id); return new; end; $$;
+create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
+create table services (id uuid primary key default gen_random_uuid(),title text not null,description text not null,price text not null,sort_order int not null default 100,is_published boolean not null default true,created_at timestamptz not null default now());
+create table gallery_items (id uuid primary key default gen_random_uuid(),title text not null,description text,image_url text not null,alt_text text not null,sort_order int not null default 100,is_published boolean not null default true,created_at timestamptz not null default now());
+create table social_links (id uuid primary key default gen_random_uuid(),platform text not null,label text,url text not null,sort_order int not null default 100,is_published boolean not null default true,created_at timestamptz not null default now());
+create table appointment_slots (id uuid primary key default gen_random_uuid(),starts_at timestamptz not null,is_available boolean not null default true,created_at timestamptz not null default now());
+create table reservations (id uuid primary key default gen_random_uuid(),client_name text not null,phone text not null,service_id uuid references services(id) on delete set null,slot_id uuid unique references appointment_slots(id) on delete set null,status text not null default 'pending',created_at timestamptz not null default now());
+create table site_settings (id int primary key default 1 check(id=1),reservation_email text not null,location text not null default 'Lagos, Nigeria',refill_two_week text not null default '25000',refill_three_week text not null default '35000');
+insert into site_settings(id,reservation_email) values(1,'bookings@example.com') on conflict(id) do nothing;
+alter table profiles enable row level security; alter table services enable row level security; alter table gallery_items enable row level security; alter table social_links enable row level security; alter table appointment_slots enable row level security;
+create policy "published services are public" on services for select using(is_published=true); create policy "published gallery is public" on gallery_items for select using(is_published=true); create policy "published socials are public" on social_links for select using(is_published=true); create policy "available slots are public" on appointment_slots for select using(is_available=true);
+-- After creating your first Supabase Auth user, grant admin access in SQL Editor:
+-- update profiles set is_admin=true where id='YOUR_AUTH_USER_UUID';
